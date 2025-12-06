@@ -1,0 +1,31 @@
+{
+  "program": "dense_layer.asm",
+  "timestamp": "2025-12-06_19-03-34",
+  "total_cycles": 22,
+  "instruction_count": 22,
+  "cpi": 1.000,
+  "npu_instructions": 14,
+  "scalar_instructions": 8,
+  "memory_reads": 6,
+  "memory_writes": 1,
+  "branches_taken": 0,
+  "branches_not_taken": 0,
+  "final_scalar_registers": {
+    "a0": 4096,
+    "a1": 4352,
+    "a2": 4608,
+    "a3": 4864,
+    "s4": 164,
+    "s5": 3
+  },
+  "final_vector_registers": {
+    "V0": [10, 20, 30, 40],
+    "V1": [0, 0, 0, 4],
+    "V2": [0, 0, 0, 0],
+    "V3": [0, 0, 0, 0],
+    "V4": [0, 0, 0, 0],
+    "V5": [0, 0, 0, 0],
+    "V6": [11, 42, 93, 164],
+    "V7": [0, 0, 0, 0]
+  }
+}

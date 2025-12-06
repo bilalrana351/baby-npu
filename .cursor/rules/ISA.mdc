@@ -1,0 +1,163 @@
+---
+alwaysApply: true
+---
+3. Proposed Application Domain
+
+Domain: Neural Processing Unit (NPU)
+Target Task: Efficient and Fast execution of AI Models on edge devices.
+
+4. Problem Description and Rationale
+Standard General Purpose Processors (CPUs) face significant bottlenecks when running Deep Learning workloads due to the sequential nature of scalar instructions. A simple matrix multiplication on a standard RISC-V core requires nested loops containing hundreds of LOAD, MUL, and ADD instructions, resulting in high instruction fetch overhead and slow calculations.
+On the other hand, GPUs, although very fast, are still General Purpose and not energy efficient, so it is not feasible to run them on edge device.
+Our Application Specific Processor (ASP) addresses this by introducing an "NPU" extension. By offloading heavy linear algebra tasks (like Matrix Multiplication) to a dedicated NPU, we can perform 4 multiply-accumulate operations (and more if we have more MAC Units) per single instruction cycle. This design makes specialized hardware to run functions and calculations (like Matrix Multiplication) related to Neural Networks extremely fast, leading to great speed improvements and higher efficiency (because of highly specialized hardware)
+In fact, many companies like Apple and Qualcomm now ship dedicated NPU Units with their SOCs, which have enabled AI Computations to run extremely fast on Low Power devices like Mobile Phones.
+
+## A. ISA Specification
+
+**Custom Opcode:** 1110111 (0x77) is used for all NPU instructions to separate them from standard RISC-V operations.
+
+| Instruction | Opcode | Format | Description | Example Usage |
+|-------------|--------|--------|-------------|---------------|
+| **VLOAD** | 1110111 | I-Type | Load 128-bits (4 integers) from memory into a vector register. | `VLOAD V1, 0(x10)` |
+| **VSTORE** | 1110111 | S-Type | Store 128-bits from a vector register into memory. | `VSTORE V1, 0(x10)` |
+| **VLBC** | 1110111 | I-Type | Broadcast Load. Read 1 integer from memory and copy it to all 4 slots of the vector register. | `VLBC V2, 4(x10)` |
+| **VADD** | 1110111 | R-Type | Vector Addition (V_d = V_s1 + V_s2). | `VADD V3, V1, V2` |
+| **VMUL** | 1110111 | R-Type | Vector Multiplication (V_d = V_s1 * V_s2). | `VMUL V3, V1, V2` |
+| **VMAC** | 1110111 | R-Type | Multiply-Accumulate. (V_d += V_s1 * V_s2). | `VMAC V0, V1, V2` |
+| **VRELU** | 1110111 | R-Type | ReLU Activation. Set any negative value in the vector to 0. | `VRELU V1, V1` |
+| **VCLP** | 1110111 | I-Type | Clamp. Cap all values in the vector at a max immediate value (e.g., 255). | `VCLP V1, V1, 255` |
+| **VREDMAX** | 1110111 | R-Type | Reduce Max. Find the maximum value in a vector and write it to a scalar register. | `VREDMAX x5, V1` |
+| **VARGMAX** | 1110111 | R-Type | ArgMax. Find the index (0-3) of the maximum value and write it to a scalar register. (Helps in classification) | `VARGMAX x5, V1` |
+| **VCLR** | 1110111 | R-Type | Clear all elements of a vector register to 0. | `VCLR V0` |
+
+---
+
+## B. Instruction Encoding Format
+
+We utilize the standard 32-bit RISC-V instruction layouts.
+
+### 1. R-Type (Arithmetic/Logic)
+
+**Used for:** VADD, VMUL, VMAC, VRELU, VREDMAX, VARGMAX, VCLR
+
+| 31–25 | 24–20 | 19–15 | 14–12 | 11–7 | 6–0 |
+|-------|-------|-------|-------|------|-----|
+| **funct7** | **Vs2** | **Vs1** | **funct3** | **Vd / Rd** | **Opcode** |
+| Subtype | Source 2 | Source 1 | Op Category | Dest | 1110111 |
+
+### 2. I-Type (Loads/Immediates)
+
+**Used for:** VLOAD, VLBC, VCLP
+
+| 31–20 | 19–15 | 14–12 | 11–7 | 6–0 |
+|-------|-------|-------|------|-----|
+| **Immediate** | **Rs1/Vs1** | **funct3** | **Vd** | **Opcode** |
+| 12-bit Value | Base Addr / Source | Op Category | Dest Vector | 1110111 |
+
+### Decoding Logic: How Instructions are Distinguished
+
+Since all NPU instructions share the same **Opcode (1110111)**, the processor differentiates them using a hierarchical check of the funct3 and funct7 fields.
+
+1. **Level 1 Check (Opcode):** The Decoder first checks bits 6-0. If they match 1110111, the instruction is routed to the NPU Pipeline.
+
+2. **Level 2 Check (Funct3):** The Decoder checks bits 14-12 to identify the **Instruction Category**:
+   - 000: Vector Arithmetic (VADD, VSUB, VMUL)
+   - 011: Multiply-Accumulate (VMAC)
+   - 100: Activations (VRELU, VCLP)
+   - 110: Reductions (VREDMAX, VARGMAX)
+   - 111: Memory Access (VLOAD, VSTORE, VLBC)
+
+3. **Level 3 Check (Funct7):** If multiple instructions share a funct3 (e.g., VADD and VMUL both use 000), the funct7 bits (31-25) are used to distinguish the specific operation.
+
+---
+
+## C. Instruction Behavior Description
+
+### 1. VMAC (Vector Multiply-Accumulate)
+
+- **Operation:** V_d[i] = V_d[i] + (V_s1[i] × V_s2[i]) for i=0..3
+- **Description:** The core neural network operation. It performs 4 parallel multiplications and adds the results to the existing accumulator values.
+- **Stage Activity (Pipelined):**
+  - **IF:** Fetch instruction.
+  - **ID:** Decode Opcode 1110111 + Funct3 011. Read V_s1, V_s2, V_d.
+  - **EX:** MAC Unit performs 4 parallel MAC operations.
+  - **MEM:** N/A.
+  - **WB:** Write updated values back to V_d.
+
+### 2. VLBC (Vector Load Broadcast)
+
+- **Operation:** V_d[0..3] = Memory[Rs1 + Imm]
+- **Description:** Optimization for multi-layer networks. Reads a single 32-bit integer from memory and replicates it across all 4 slots of the destination vector register.
+- **Stage Activity:**
+  - **IF:** Fetch instruction.
+  - **ID:** Decode Opcode 1110111 + Funct3 111. Read base address from Scalar Register Rs1.
+  - **EX:** Calculate Effective Address (Rs1 + Imm).
+  - **MEM:** Read 32-bit word from memory.
+  - **WB:** Replicate the 32-bit word into all 4 lanes of Vector Register V_d.
+
+### 3. VRELU (Vector ReLU)
+
+- **Operation:** V_d[i] = (V_s1[i] < 0) ? 0 : V_s1[i]
+- **Description:** Applies non-linearity. Checks every element; if negative, replaces it with 0.
+- **Stage Activity:**
+  - **IF:** Fetch.
+  - **ID:** Decode Opcode 1110111 + Funct3 100. Read V_s1.
+  - **EX:** Compare each element with 0 and multiplex the result.
+  - **MEM:** N/A.
+  - **WB:** Write result to V_d.
+
+### 4. VARGMAX (Vector ArgMax Classification)
+
+- **Operation:** Rd = IndexOf(Max(V_s))
+- **Description:** Finds the index (0-3) of the maximum value in the vector and writes it to a Scalar Register, enabling the CPU to make classification decisions.
+- **Stage Activity:**
+  - **IF:** Fetch.
+  - **ID:** Decode Opcode 1110111 + Funct3 110. Read Vector Register V_s.
+  - **EX:** Compare all 4 elements in a reduction tree to find the index of the largest value.
+  - **MEM:** N/A.
+  - **WB:** Write the resulting index to Scalar Register Rd (e.g., x10).
+
+---
+
+## D. Expected Performance Analysis
+
+To justify the hardware cost of the Baby NPU, we have performed a theoretical cycle-count analysis comparing a standard RISC-V CPU against our Heterogeneous NPU Architecture for a key kernel: **4-Element Dot Product** (the fundamental operation of Neural Networks).
+
+### 1. Baseline: Standard RISC-V CPU
+
+Performing a dot product of two 4-element vectors (A · B) on a scalar CPU requires a loop.
+
+- **Operations:** 8 Loads (32-bit), 4 Multiplies, 4 Adds, plus loop control overhead (Branch/Increment).
+- **Instruction Count:** ~20-25 instructions.
+- **Throughput:** 1 scalar operation per cycle.
+- **Memory Overhead:** 8 separate memory requests.
+
+### 2. Proposed Solution: Baby NPU
+
+Using our custom ISA, the same operation is vectorised.
+
+- **Code:** VLOAD V1, VLOAD V2, VMAC V0, V1, V2.
+- **Instruction Count:** 3 instructions.
+- **Throughput:** 4 parallel MAC operations per cycle (SIMD).
+- **Memory Overhead:** 2 memory requests (128-bit burst loads).
+
+### 3. Projected Improvements
+
+| Metric | Standard RISC-V CPU | Baby NPU (Ours) | Improvement Factor |
+|--------|---------------------|-----------------|-------------------|
+| **Instruction Count** | ~24 Instructions | 3 Instructions | **8x Reduction** (Fetch Efficiency) |
+| **Compute Cycles** | ~24 Cycles | ~4 Cycles | **6x Speedup** (Latency) |
+| **Memory Accesses** | 8 x 32-bit Reads | 2 x 128-bit Reads | **75% Less Bus Contention** |
+| **Arithmetic Density** | 0.33 Ops / Cycle | 4.0 Ops / Cycle | **12x Higher Density** |
+
+**Note:** These figures are theoretical estimates based on a 5-stage pipeline model. Actual speedup will be verified in Phase 2 simulations.
+
+---
+
+## E. Conclusion
+
+This project aims to bridge the gap between general-purpose computing and the demands of modern AI workloads. By augmenting a standard RISC-V pipeline with a domain-specific **Neural Processing Unit (NPU)**, we address the critical bottlenecks of instruction fetch latency and memory bandwidth.
+
+Our design introduces a specialized ISA capable of **Single-Instruction Multiple-Data (SIMD)** execution, enabling the processor to handle matrix operations, activation functions (ReLU), and classification tasks (ArgMax) with orders of magnitude greater efficiency than a scalar CPU. The introduction of the VLBC (Broadcast) instruction further optimizes the system for multi-layer networks by eliminating CPU-bound data shuffling.
+
+Ultimately, this **Heterogeneous Architecture** demonstrates how dedicated hardware accelerators can enable complex Deep Learning inference on low-power, resource-constrained edge devices.
