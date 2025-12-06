@@ -205,7 +205,7 @@ class PipelinedCPU : public CPUBase {
 ## Authors
 
 - Muhammad Haseeb ul Haq (454512)
-- Bilal Rana (454035)
+- Bilal Ranaa (454035)
 - Muhammad Moiz (464192)
 - Muhammad Samama Usaman (454520)
 
