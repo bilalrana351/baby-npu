@@ -1,0 +1,28 @@
+{
+  "program": "program1_arithmetic.asm",
+  "timestamp": "2025-12-13_17-19-03",
+  "total_cycles": 9,
+  "instruction_count": 9,
+  "cpi": 1.000,
+  "npu_instructions": 5,
+  "scalar_instructions": 4,
+  "memory_reads": 2,
+  "memory_writes": 1,
+  "branches_taken": 0,
+  "branches_not_taken": 0,
+  "final_scalar_registers": {
+    "a0": 256,
+    "a1": 512,
+    "a2": 768
+  },
+  "final_vector_registers": {
+    "V0": [0, 0, 0, 0],
+    "V1": [10, 20, 30, 40],
+    "V2": [1, 2, 3, 4],
+    "V3": [110, 440, 990, 1760],
+    "V4": [0, 0, 0, 0],
+    "V5": [0, 0, 0, 0],
+    "V6": [0, 0, 0, 0],
+    "V7": [0, 0, 0, 0]
+  }
+}

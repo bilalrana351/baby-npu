@@ -1,0 +1,30 @@
+{
+  "program": "simple_rnn.asm",
+  "timestamp": "2025-12-13_17-38-09",
+  "total_cycles": 134,
+  "instruction_count": 107,
+  "cpi": 1.252,
+  "npu_instructions": 87,
+  "scalar_instructions": 20,
+  "memory_reads": 27,
+  "memory_writes": 3,
+  "branches_taken": 2,
+  "branches_not_taken": 1,
+  "final_scalar_registers": {
+    "a0": 8448,
+    "a1": 8704,
+    "a2": 9008,
+    "a3": 9216,
+    "s4": 128
+  },
+  "final_vector_registers": {
+    "V0": [44, 72, 100, 128],
+    "V1": [3, 4, 5, 6],
+    "V2": [1, 0, 0, 1],
+    "V3": [0, 0, 0, 0],
+    "V4": [0, 0, 0, 0],
+    "V5": [0, 0, 0, 0],
+    "V6": [0, 0, 0, 0],
+    "V7": [44, 72, 100, 128]
+  }
+}

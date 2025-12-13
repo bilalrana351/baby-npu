@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "/Users/bilalrana351/Documents/Sem5/CA/Labs/Project/npu-simulator",
+    "command": "/usr/bin/clang++ -std=c++17 -Wall -Wextra -pedantic -O2 -Iinclude -c src/main.cpp -o build/main.o",
+    "file": "src/main.cpp"
+  }
+]

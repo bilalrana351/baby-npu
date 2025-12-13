@@ -1,0 +1,33 @@
+{
+  "program": "npu_intensive.asm",
+  "timestamp": "2025-12-13_17-20-29",
+  "total_cycles": 46,
+  "instruction_count": 40,
+  "cpi": 1.150,
+  "npu_instructions": 32,
+  "scalar_instructions": 8,
+  "memory_reads": 7,
+  "memory_writes": 1,
+  "branches_taken": 0,
+  "branches_not_taken": 0,
+  "final_scalar_registers": {
+    "a0": 256,
+    "a1": 256000,
+    "a2": 1,
+    "a3": 5,
+    "a4": 3,
+    "a6": 10,
+    "a7": 20496000,
+    "s2": 40
+  },
+  "final_vector_registers": {
+    "V0": [81000, 1284000, 6489000, 20496000],
+    "V1": [10, 20, 30, 40],
+    "V2": [0, 0, 0, 0],
+    "V3": [10, 20, 30, 40],
+    "V4": [0, 0, 0, 0],
+    "V5": [0, 0, 0, 0],
+    "V6": [10, 20, 30, 40],
+    "V7": [0, 0, 0, 0]
+  }
+}
