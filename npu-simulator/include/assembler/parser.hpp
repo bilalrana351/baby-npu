@@ -1,6 +1,7 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+#include <map>
 #include "../common.hpp"
 #include "../instruction.hpp"
 #include "lexer.hpp"
