@@ -1,0 +1,7 @@
+cycle,pc,instruction,rd,rs1,rs2,result
+4,0x0000,ADDI,a0,x0,-,"256"
+5,0x0004,VLOAD,V1,a0,-,"[10, 20, 30, 40]"
+6,0x0008,JAL,ra,x0,-,"12"
+7,0x000c,ADDI,a1,x0,-,"272"
+9,0x0020,VRELU,V1,ra,-,"[10, 20, 30, 40]"
+10,0x0024,VADD,V0,V0,V0,"[0, 0, 0, 0]"
